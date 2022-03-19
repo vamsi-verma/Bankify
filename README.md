@@ -9,3 +9,7 @@ The two users wih full functionality are:
 
 2. username: rk
    password: 2222
+
+The site demo can be seen on this url: https://bankify-vamsi.netlify.app/
+
+Thank you have a nice coding day
