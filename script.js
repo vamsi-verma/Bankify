@@ -3,13 +3,10 @@
 // /////////////////////////////////////////////////
 // /////////////////////////////////////////////////
 // // BANKIST APP
-// Data
-
-// DIFFERENT DATA! Contains movement dates, currency and locale
 
 // // Data
 const account1 = {
-  owner: 'Jonas Schmedtmann',
+  owner: 'Vamsi Verma',
   movements: [200, 450, -400, 3000, -650, -130, 70, 1300],
   interestRate: 1.2, // %
   pin: 1111,
@@ -24,12 +21,12 @@ const account1 = {
     '2022-03-18T10:51:36.790Z',
     '2022-03-19T17:01:17.194Z',
   ],
-  currency: 'EUR',
-  locale: 'pt-PT',
+  currency: 'INR',
+  locale: 'en-IN',
 };
 
 const account2 = {
-  owner: 'Jessica Davis',
+  owner: 'Roshan Kumar',
   movements: [5000, 3400, -150, -790, -3210, -1000, 8500, -30],
   interestRate: 1.5,
   pin: 2222,
@@ -48,14 +45,14 @@ const account2 = {
 };
 
 const account3 = {
-  owner: 'Steven Thomas Williams',
+  owner: 'Devi Prasad Nayak',
   movements: [200, -200, 340, -300, -20, 50, 400, -460],
   interestRate: 0.7,
   pin: 3333,
 };
 
 const account4 = {
-  owner: 'Sarah Smith',
+  owner: 'Sasi Varun',
   movements: [430, 1000, 700, 50, 90],
   interestRate: 1,
   pin: 4444,
@@ -89,20 +86,28 @@ const inputLoanAmount = document.querySelector('.form__input--loan-amount');
 const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
-const formatTransactionDate = function (date) {
+const formatTransactionDate = function (date, locale) {
   const calcDaysPassed = (date1, date2) =>
     Math.round(Math.abs(date2 - date1) / (1000 * 60 * 60 * 24));
 
   const daysPassed = calcDaysPassed(new Date(), date);
-  console.log(daysPassed);
 
   if (daysPassed === 0) return 'Today';
   if (daysPassed === 1) return 'Yesterday';
   if (daysPassed <= 7) return `${daysPassed} days ago`;
-  const day = `${date.getDate()}`.padStart(2, '0');
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+
+  // const day = `${date.getDate()}`.padStart(2, '0');
+  // const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  // const year = date.getFullYear();
+  // return `${day}/${month}/${year}`;
+  return new Intl.DateTimeFormat(locale).format(date);
+};
+
+const currencyFormat = function (value, locale, currency) {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: currency,
+  }).format(value);
 };
 
 const displayTransactions = function (account, sort = false) {
@@ -116,13 +121,18 @@ const displayTransactions = function (account, sort = false) {
     const type = mov > 0 ? 'deposit' : 'withdrawal';
 
     const date = new Date(account.movementsDates[i]);
-    const displayDate = formatTransactionDate(date);
+    const displayDate = formatTransactionDate(date, account.locale);
+    const formattedTrans = currencyFormat(
+      mov,
+      account.locale,
+      account.currency
+    );
 
     const html = `
     <div class="movements__row">
     <div class="movements__type movements__type--${type}">${i + 1} ${type}</div>
 <div class="movements__date">${displayDate}</div>
-    <div class="movements__value">${mov.toFixed(2)}$</div>
+    <div class="movements__value">${formattedTrans}</div>
   </div>`;
     containerMovements.insertAdjacentHTML('afterbegin', html);
   });
@@ -130,7 +140,11 @@ const displayTransactions = function (account, sort = false) {
 
 const calcDisplayBalance = function (account) {
   account.balance = account.movements.reduce((acc, cur) => acc + cur, 0);
-  labelBalance.textContent = `${account.balance.toFixed(2)}$`;
+  const formattedTrans = (labelBalance.textContent = currencyFormat(
+    account.balance,
+    account.locale,
+    account.currency
+  ));
 };
 
 const calcDisplaySummary = function (account) {
@@ -138,19 +152,31 @@ const calcDisplaySummary = function (account) {
   const incomes = account.movements
     .filter(mov => mov > 0)
     .reduce((acc, cur) => acc + cur, 0);
-  labelSumIn.textContent = `${incomes.toFixed(2)}$`;
+  labelSumIn.textContent = currencyFormat(
+    incomes,
+    account.locale,
+    account.currency
+  );
   //total Withdrawal
   const out = account.movements
     .filter(mov => mov < 0)
     .reduce((acc, cur) => acc + cur, 0);
-  labelSumOut.textContent = `${Math.abs(out).toFixed(2)}$`;
+  labelSumOut.textContent = currencyFormat(
+    Math.abs(out),
+    account.locale,
+    account.currency
+  );
 
   const interest = account.movements
     .filter(mov => mov > 0)
     .map(deposit => (deposit * account.interestRate) / 100)
     .filter((int, i, arr) => int >= 1)
     .reduce((acc, int) => acc + int, 0);
-  labelSumInterest.textContent = `${interest.toFixed(2)}$`;
+  labelSumInterest.textContent = currencyFormat(
+    interest,
+    account.locale,
+    account.currency
+  );
 };
 
 const updateUI = function (acc) {
@@ -190,14 +216,22 @@ btnLogin.addEventListener('click', function (e) {
       currentAccount.owner.split(' ')[0]
     }`;
     containerApp.style.opacity = 100;
+
     //creating current date and time
     const now = new Date();
-    const day = `${now.getDate()}`.padStart(2, '0');
-    const month = `${now.getMonth() + 1}`.padStart(2, '0');
-    const year = now.getFullYear();
-    const hour = `${now.getHours()}`.padStart(2, '0');
-    const min = `${now.getMinutes()}`.padStart(2, '0');
-    labelDate.textContent = `${day}/${month}/${year}, ${hour}:${min}`;
+    const options = {
+      hour: 'numeric',
+      minute: 'numeric',
+      day: 'numeric',
+      month: 'numeric',
+      year: 'numeric',
+    };
+
+    // const locale = navigator.language;
+    labelDate.textContent = new Intl.DateTimeFormat(
+      currentAccount.locale,
+      options
+    ).format(now);
 
     //Clear Input fields once successfully login
     inputLoginUsername.value = inputLoginPin.value = '';
